@@ -18,7 +18,7 @@ import org.junit.Test;
 public class BinaryJoinTCTest {
    static final int gridSize = 5;
   
-  MapDriver<LongWritable, Text, Text, String> mapDriver;
+  MapDriver<LongWritable, Text, Text, Text> mapDriver;
   ReduceDriver<Text, Text, Text, NullWritable> reduceDriver;
   MapReduceDriver<LongWritable, Text, Text, Text, Text, NullWritable> mapReduceDriver;
 
@@ -29,10 +29,6 @@ public class BinaryJoinTCTest {
      mapDriver = MapDriver.newMapDriver(mapper);
      reduceDriver = ReduceDriver.newReduceDriver(reducer);
      //mapReduceDriver = MapReduceDriver.newMapReduceDriver(mapper, reducer);
-     Configuration conf = mapDriver.getConfiguration();
-     conf.setInt("gridSize", gridSize);
-     conf = mapReduceDriver.getConfiguration();
-     conf.setInt("gridSize", gridSize);
   }
 
   @Test

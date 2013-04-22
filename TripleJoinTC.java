@@ -32,21 +32,21 @@ public class TripleJoinTC {
       Text outKey = new Text();
       String outKeyString;
       NullWritable outValue = NullWritable.get();
-      int gridSize;
+      int gridDim;
 
       @Override
       public void setup(Context context) throws IOException,
             InterruptedException {
          super.setup(context);
          Configuration conf = context.getConfiguration();
-         gridSize = conf.getInt("gridSize", 0);
+         gridDim = conf.getInt("gridDim", 0);
       }
 
       @Override
       public void map(LongWritable key, Text value, Context context)
             throws IOException, InterruptedException {
          outKeyString = value.toString();
-         for (int i = 0; i < gridSize; i++) {
+         for (int i = 0; i < gridDim; i++) {
             outKey.set(String.format("left,%s,%d", outKeyString, i));
             context.write(outKey, outValue);
             outKey.set(String.format("right,%s,%d", outKeyString, i));
@@ -59,30 +59,30 @@ public class TripleJoinTC {
 
    public static class JoinPart extends Partitioner<Text, NullWritable> implements
          Configurable {
-      int gridSize;
+      int gridDim;
 
       @Override
       public int getPartition(Text key, NullWritable value, int numPartitions) {
          int row, col;
          String[] s = key.toString().split(",");
          if (s[0].equals("left")) {
-            row = (s[2].hashCode() & Integer.MAX_VALUE) % gridSize;
+            row = (s[2].hashCode() & Integer.MAX_VALUE) % gridDim;
             col = Integer.parseInt(s[3]);
          }
          else if (s[0].equals("center")) {
-            row = (s[1].hashCode() & Integer.MAX_VALUE) % gridSize;
-            col = (s[2].hashCode() & Integer.MAX_VALUE) % gridSize;
+            row = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
+            col = (s[2].hashCode() & Integer.MAX_VALUE) % gridDim;
          }
          else {
             row = Integer.parseInt(s[3]);
-            col = (s[1].hashCode() & Integer.MAX_VALUE) % gridSize;
+            col = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
          }
-         sLogger.debug("Partition: " + Integer.toString(row*gridSize + col));
-         return row*gridSize + col;
+         sLogger.debug("Partition: " + Integer.toString(row*gridDim + col));
+         return row*gridDim + col;
       }
       @Override
       public void setConf(Configuration conf) {
-         gridSize = conf.getInt("gridSize", 0);
+         gridDim = conf.getInt("gridDim", 0);
       }
       @Override
       public Configuration getConf() {
@@ -129,21 +129,21 @@ public class TripleJoinTC {
    }
 
    public static void main(String[] args) throws Exception {
-      // TripleJoinTC input output gridSize
+      // TripleJoinTC input output gridDim
       Job job = null;
       Configuration conf = new Configuration();
       String input, output;
-      int gridSize;
+      int gridDim;
       if (args.length < 3) {
-         System.out.println("usage: TripleJoinTC input output gridSize");
+         System.out.println("usage: TripleJoinTC input output gridDim");
          System.exit(1);
       }
       input = args[0];
       output = args[1];
-      gridSize = Integer.parseInt(args[2]);
-      conf.setInt("gridSize", gridSize);
+      gridDim = Integer.parseInt(args[2]);
+      conf.setInt("gridDim", gridDim);
       job = new Job(conf);
-      job.setNumReduceTasks((int) Math.pow(gridSize, 2));
+      job.setNumReduceTasks((int) Math.pow(gridDim, 2));
       job.setJarByClass(TripleJoinTC.class);
       job.setMapperClass(JoinMapper.class);
       job.setReducerClass(JoinReducer.class);

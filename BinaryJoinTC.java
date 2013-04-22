@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -21,6 +22,7 @@ import org.apache.log4j.PatternLayout;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 public class BinaryJoinTC {
    static final Logger sLogger = Logger.getLogger(BinaryJoinTC.class);
@@ -32,16 +34,7 @@ public class BinaryJoinTC {
       Text outKey = new Text();
       Text outValue = new Text();
       String[] tuple;
-      int gridSize;
-
-      @Override
-      public void setup(Context context) throws IOException,
-            InterruptedException {
-         super.setup(context);
-         Configuration conf = context.getConfiguration();
-         gridSize = conf.getInt("gridSize", 0);
-      }
-
+      
       @Override
       public void map(LongWritable key, Text value, Context context)
             throws IOException, InterruptedException {
@@ -51,68 +44,56 @@ public class BinaryJoinTC {
          context.write(outKey, outValue);
          outKey.set("right," + tuple[0]);
          outValue.set(tuple[1]);
+         context.write(outKey, outValue);
       }
    }
 
-   public static class JoinPart extends Partitioner<Text, NullWritable> implements
-         Configurable {
-
+   // Partition on join key.
+   public static class JoinPart extends Partitioner<Text, Text>{ 
       @Override
-      public int getPartition(Text key, NullWritable value, int numPartitions) {
-         int row, col;
-         String[] s = key.toString().split(",");
-         if (s[0].equals("left")) {
-            row = (s[2].hashCode() & Integer.MAX_VALUE) % gridSize;
-            col = Integer.parseInt(s[3]);
-         }
-         else if (s[0].equals("center")) {
-            row = (s[1].hashCode() & Integer.MAX_VALUE) % gridSize;
-            col = (s[2].hashCode() & Integer.MAX_VALUE) % gridSize;
-         }
-         else {
-            row = Integer.parseInt(s[3]);
-            col = (s[1].hashCode() & Integer.MAX_VALUE) % gridSize;
-         }
-         sLogger.debug("Partition: " + Integer.toString(row*gridSize + col));
-         return row*gridSize + col;
+      public int getPartition(Text key, Text value, int numPartitions) {
+         return key.toString().split(",")[1].hashCode() & Integer.MAX_VALUE;
       }
    }
 
    public static class JoinReducer extends
-         Reducer<Text, NullWritable, Text, NullWritable> {
+         Reducer<Text, Text, Text, NullWritable> {
       Multimap<String, String> hashMap = HashMultimap.create();
       Text outKey = new Text();
       NullWritable outValue = NullWritable.get();
 
       @Override
-      public void reduce(Text key, Iterable<NullWritable> values, Context context)
+      public void reduce(Text key, Iterable<Text> values, Context context)
             throws IOException, InterruptedException {
          String[] k = key.toString().split(",");
          Collection<String> list = new ArrayList<String>();
-         String hashKey, edge="%s,%s";
-
-         if (k[0].equals("left") && hashMap.containsKey(hashKey="left,"+k[2])) {
-            list = hashMap.removeAll(hashKey);
-            for (String s : list) {
-               hashKey = String.format(edge, "right", s);
-               hashMap.put(hashKey, k[1]);
-               outKey.set(String.format(edge, k[1],s));
+         String valueString;
+         
+         if(k[0].equals("left")){
+            // Pass through all existing tuples.
+            // Hash all left side tuples. These appear first due to sort order.
+            for(Text t : values){
+               valueString = t.toString();
+               outKey.set(valueString + ',' + k[1]);
                context.write(outKey, outValue);
+               hashMap.put(k[1], valueString);
             }
          }
-         if (k[0].equals("center")){
-            hashKey = String.format(edge, "left", k[1]);
-            hashMap.put(hashKey, k[2]);
-            outKey.set(String.format(edge, k[1], k[2]));
-            context.write(outKey, outValue);
-         }
-         if (k[0].equals("right") && hashMap.containsKey(hashKey="right,"+ k[1])) {
-            list = hashMap.removeAll(hashKey);
-            for (String s : list) {
-               outKey.set(String.format(edge, s,k[2]));
+         else if(k[0].equals("right")){
+            // Pass through all existing tuples and perform join.
+            list = hashMap.get(k[1]);
+            for(Text t : values){
+               valueString = t.toString();
+               outKey.set(k[1] + ',' + valueString);
                context.write(outKey, outValue);
+               for(String s: list){
+                  outKey.set(s + ',' + valueString);
+                  context.write(outKey, outValue);
+               }
             }
          }
+         else
+            sLogger.debug("Reducer: Bad Key");
       }
    }
 
@@ -121,19 +102,19 @@ public class BinaryJoinTC {
       Job job = null;
       Configuration conf = new Configuration();
       String input, output;
-      int gridSize;
+      int numReducer;
       if (args.length < 3) {
-         System.out.println("usage: TripleJoinTC input output gridSize");
+         System.out.println("usage: BinaryJoinTC input output numReducers");
          System.exit(1);
       }
       input = args[0];
       output = args[1];
-      gridSize = Integer.parseInt(args[2]);
-      conf.setInt("gridSize", gridSize);
+      numReducer = Integer.parseInt(args[2]);
       job = new Job(conf);
-      job.setNumReduceTasks((int) Math.pow(gridSize, 2));
+      job.setNumReduceTasks(numReducer);
       job.setJarByClass(BinaryJoinTC.class);
       job.setMapperClass(JoinMapper.class);
+      job.setMapOutputValueClass(Text.class);
       job.setReducerClass(JoinReducer.class);
       job.setOutputValueClass(NullWritable.class);
       job.setOutputKeyClass(Text.class);

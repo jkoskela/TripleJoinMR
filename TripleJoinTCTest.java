@@ -16,7 +16,7 @@ import org.junit.Test;
 
 
 public class TripleJoinTCTest {
-   static final int gridSize = 5;
+   static final int gridDim = 5;
   
   MapDriver<LongWritable, Text, Text, NullWritable> mapDriver;
   ReduceDriver<Text, NullWritable, Text, NullWritable> reduceDriver;
@@ -30,18 +30,18 @@ public class TripleJoinTCTest {
      reduceDriver = ReduceDriver.newReduceDriver(reducer);
      mapReduceDriver = MapReduceDriver.newMapReduceDriver(mapper, reducer);
      Configuration conf = mapDriver.getConfiguration();
-     conf.setInt("gridSize", gridSize);
+     conf.setInt("gridDim", gridDim);
      conf = mapReduceDriver.getConfiguration();
-     conf.setInt("gridSize", gridSize);
+     conf.setInt("gridDim", gridDim);
   }
 
   @Test
   public void testMapper() throws IOException {
      mapDriver.withInput(new LongWritable(), new Text("A,B"));
-     for(int i=0; i<gridSize; i++)
+     for(int i=0; i<gridDim; i++)
         mapDriver.addOutput(new Text("left,A,B,"+i), NullWritable.get());
      mapDriver.addOutput(new Text("center,A,B,$"), NullWritable.get());
-     for(int i=0; i<gridSize; i++)
+     for(int i=0; i<gridDim; i++)
         mapDriver.addOutput(new Text("right,A,B,"+i), NullWritable.get());
      mapDriver.runTest(false);
   }
