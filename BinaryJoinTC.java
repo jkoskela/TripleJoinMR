@@ -52,7 +52,7 @@ public class BinaryJoinTC {
    public static class JoinPart extends Partitioner<Text, Text>{ 
       @Override
       public int getPartition(Text key, Text value, int numPartitions) {
-         return key.toString().split(",")[1].hashCode() & Integer.MAX_VALUE;
+         return (key.toString().split(",")[1].hashCode() & Integer.MAX_VALUE) % numPartitions;
       }
    }
 
@@ -80,12 +80,10 @@ public class BinaryJoinTC {
             }
          }
          else if(k[0].equals("right")){
-            // Pass through all existing tuples and perform join.
+            // Perform join.
             list = hashMap.get(k[1]);
             for(Text t : values){
                valueString = t.toString();
-               outKey.set(k[1] + ',' + valueString);
-               context.write(outKey, outValue);
                for(String s: list){
                   outKey.set(s + ',' + valueString);
                   context.write(outKey, outValue);
