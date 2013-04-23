@@ -1,0 +1,7 @@
+MapReduce Three-Way Join Optimization
+Author: Jade Koskela <jtkoskela@ucdavis.edu>
+http://github.com/jkoskela/TripleJoinMR
+Undergraduate Research Supervised by Dr. Bertram Ludaescher
+Spring 2013
+
+This project is currently in progress. I am studying and implementing Afrati/Ullman's methods from "Optimizing Joins in a MapReduce Environment."
