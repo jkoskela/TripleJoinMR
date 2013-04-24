@@ -24,6 +24,14 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+/**
+ * 
+ * @author Jade Koskela 
+ * 
+ * This class implements a single step in a transitive closure.
+ * Input should be edges of the format (u,v), one per line. 
+ * 
+ */
 public class BinaryJoinTC {
    static final Logger sLogger = Logger.getLogger(BinaryJoinTC.class);
    static final Level level = Level.DEBUG;
