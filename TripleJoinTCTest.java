@@ -28,7 +28,6 @@ public class TripleJoinTCTest {
      TripleJoinTC.JoinReducer reducer = new TripleJoinTC.JoinReducer();
      mapDriver = MapDriver.newMapDriver(mapper);
      reduceDriver = ReduceDriver.newReduceDriver(reducer);
-     //mapReduceDriver = MapReduceDriver.newMapReduceDriver(mapper, reducer);
      Configuration conf = mapDriver.getConfiguration();
      conf.setInt("gridDim", gridDim);
   }
@@ -56,11 +55,10 @@ public class TripleJoinTCTest {
      list.add(new Text("D"));
      reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
      list.clear();
-     reduceDriver.addOutput(new Text("B,C"), NullWritable.get()); 
-     reduceDriver.addOutput(new Text("A,C"), NullWritable.get());  
-     reduceDriver.addOutput(new Text("A,D"), NullWritable.get());  
+     reduceDriver.addOutput(new Text("B,C"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,C"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,D"), NullWritable.get());
      reduceDriver.runTest(false);
-
   }
   
   @Test
