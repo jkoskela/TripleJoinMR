@@ -14,7 +14,6 @@ import org.apache.hadoop.mrunit.mapreduce.ReduceDriver;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class TripleJoinTCTest {
    static final int gridDim = 5;
   
@@ -51,13 +50,42 @@ public class TripleJoinTCTest {
      list.clear();
      list.add(new Text("A"));
      reduceDriver.addInput(new Text("left,B,1"), new ArrayList<Text>(list));
+     reduceDriver.addInput(new Text("left,B,1"), new ArrayList<Text>(list));
      list.clear();
      list.add(new Text("D"));
+     reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
      reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
      list.clear();
      reduceDriver.addOutput(new Text("B,C"), NullWritable.get());
      reduceDriver.addOutput(new Text("A,C"), NullWritable.get());
      reduceDriver.addOutput(new Text("A,D"), NullWritable.get());
+     /*
+     reduceDriver.addInput(new Text("center,B,C"), new ArrayList<Text>(list));
+     reduceDriver.addInput(new Text("center,B,E"), new ArrayList<Text>(list));
+     list.clear();
+     list.add(new Text("A"));
+     list.add(new Text("0"));
+     reduceDriver.addInput(new Text("left,B,1"), new ArrayList<Text>(list));
+     list.clear();
+     list.add(new Text("D"));
+     reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
+     list.clear();
+     list.add(new Text("F"));
+     list.add(new Text("G"));
+     reduceDriver.addInput(new Text("right,E,1"), new ArrayList<Text>(list));
+     reduceDriver.addOutput(new Text("B,C"), NullWritable.get());
+     reduceDriver.addOutput(new Text("B,E"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,C"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,D"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,E"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,F"), NullWritable.get());
+     reduceDriver.addOutput(new Text("A,G"), NullWritable.get());
+     reduceDriver.addOutput(new Text("0,C"), NullWritable.get());
+     reduceDriver.addOutput(new Text("0,D"), NullWritable.get());
+     reduceDriver.addOutput(new Text("0,E"), NullWritable.get());
+     reduceDriver.addOutput(new Text("0,F"), NullWritable.get());
+     reduceDriver.addOutput(new Text("0,G"), NullWritable.get());
+     */
      reduceDriver.runTest(false);
   }
   

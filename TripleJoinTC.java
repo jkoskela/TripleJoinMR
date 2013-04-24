@@ -67,7 +67,11 @@ public class TripleJoinTC {
       public int getPartition(Text key, Text value, int numPartitions) {
          int row, col;
          String[] s = key.toString().split(",");
-         if (s[0].equals("center")) {
+         if(s[0].equals("left")) {
+            row = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
+            col = Integer.parseInt(s[2]);
+         }
+         else if(s[0].equals("center")) {
             row = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
             col = (s[2].hashCode() & Integer.MAX_VALUE) % gridDim;
          }
