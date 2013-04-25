@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.apache.hadoop.conf.Configurable;
@@ -12,37 +13,48 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-/**
- * 
+/*
  * @author Jade Koskela
- * 
- * This class implements a triple join as 2 steps of a transitive closure. 
- * Input should be edges of the format "u,v", one per line. 
- *
+ * This class implements a triple join between 3 input relations.
+ * For simplification, relations only have 2 columns.
+ * Using relations R(A,B) S(B,C) T(C,D), the SQL equivalent:
+ *    select r.a, t.d from r,s,t where r.b=s.b and s.c=t.c 
  */
-public class TripleJoinTC {
-   static final Logger sLogger = Logger.getLogger(TripleJoinTC.class.getName());
-   static final Level level = Level.DEBUG;
-   static final String log = "hadoop.log";
+public class TripleJoin {
 
    public static class JoinMapper extends
          Mapper<LongWritable, Text, Text, Text> {
       Text outKey = new Text(), outValue = new Text();
       String[] keyString;
-      int gridDim;
+      String relation;
+      int gridDim, relationPosition;
 
       @Override
       public void setup(Context context) throws IOException,
             InterruptedException {
          super.setup(context);
          Configuration conf = context.getConfiguration();
+         FileSplit fs = (FileSplit)context.getInputSplit();
          gridDim = conf.getInt("gridDim", 0);
+         relation = fs.getPath().getName();
+         if(conf.get("left").equals(relation))
+            relationPosition = 0;
+         else if(conf.get("center").equals(relation))
+            relationPosition = 1;
+         else if(conf.get("right").equals(relation))
+            relationPosition = 2;
+         else
+            System.out.println("Error in Mapper Setup");
       }
 
       @Override
@@ -50,16 +62,22 @@ public class TripleJoinTC {
             throws IOException, InterruptedException {
          keyString = value.toString().split(",");
          for (int i = 0; i < gridDim; i++) {
-            outKey.set(String.format("left,%s,%d", keyString[1], i));
-            outValue.set(keyString[0]);
-            context.write(outKey, outValue);
-            outKey.set(String.format("right,%s,%d", keyString[0], i));
-            outValue.set(keyString[1]);
+            if(relationPosition == 0){
+               outKey.set(String.format("left,%s,%d", keyString[1], i));
+               outValue.set(keyString[0]);
+               context.write(outKey, outValue);
+            }
+            else if(relationPosition == 1){
+               outKey.set(String.format("right,%s,%d", keyString[0], i));
+               outValue.set(keyString[1]);
+               context.write(outKey, outValue);
+            }
+         }
+         if(relationPosition == 2){
+            outKey.set(String.format("center,%s,%s", keyString[0], keyString[1]));
+            outValue.set("");
             context.write(outKey, outValue);
          }
-         outKey.set(String.format("center,%s,%s", keyString[0], keyString[1]));
-         outValue.set("");
-         context.write(outKey, outValue);
       }
    }
 
@@ -83,7 +101,6 @@ public class TripleJoinTC {
             row = Integer.parseInt(s[2]);
             col = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
          }
-         sLogger.debug("Partition: " + Integer.toString(row*gridDim + col));
          System.out.printf("PARTITION %d: %s %s\n", row*gridDim+col, key.toString(), value.toString());
          return row*gridDim + col;
       }
@@ -116,16 +133,12 @@ public class TripleJoinTC {
                for (String s : list) {
                   hashKey = "right," + s;
                   hashMap.put(hashKey, v.toString());
-                  outKey.set(String.format(edge, v.toString(), s));
-                  context.write(outKey, outValue);
                }
             }
          }
          if (k[0].equals("center")){
             hashKey = String.format(edge, "left", k[1]);
             hashMap.put(hashKey, k[2]);
-            outKey.set(String.format(edge, k[1], k[2]));
-            context.write(outKey, outValue);
          }
          if (k[0].equals("right") && hashMap.containsKey(hashKey)) {
             list = hashMap.removeAll(hashKey);
@@ -140,31 +153,34 @@ public class TripleJoinTC {
    }
 
    public static void main(String[] args) throws Exception {
-      // TripleJoinTC input output gridDim
       Job job = null;
       Configuration conf = new Configuration();
-      String input, output;
+      String left, center, right, output;
       int gridDim;
-      if (args.length < 3) {
-         System.out.println("usage: TripleJoinTC input output gridDim");
+      if (args.length != 5) {
+         System.out.println("usage: TripleJoinTC R1 R2 R3 output gridDim");
          System.exit(1);
       }
-      input = args[0];
-      output = args[1];
-      gridDim = Integer.parseInt(args[2]);
+      left = args[0];
+      center = args[1];
+      right = args[2];
+      output = args[3];
+      gridDim = Integer.parseInt(args[4]);
       conf.setInt("gridDim", gridDim);
+      conf.set("left", left);
+      conf.set("center", center);
+      conf.set("right", right);
       job = new Job(conf);
       job.setNumReduceTasks((int) Math.pow(gridDim, 2));
-      job.setJarByClass(TripleJoinTC.class);
+      job.setJarByClass(TripleJoin.class);
       job.setMapperClass(JoinMapper.class);
       job.setReducerClass(JoinReducer.class);
       job.setMapOutputValueClass(Text.class);
       job.setOutputValueClass(NullWritable.class);
       job.setOutputKeyClass(Text.class);
       job.setPartitionerClass(JoinPart.class);
-      FileInputFormat.setInputPaths(job, new Path(input));
+      FileInputFormat.setInputPaths(job, new Path(left), new Path(center), new Path(right));
       FileOutputFormat.setOutputPath(job, new Path(output));
-      sLogger.setLevel(level);
       job.waitForCompletion(true);
    }
 }

@@ -33,11 +33,11 @@ import com.google.common.collect.Sets;
  * @author Jade Koskela 
  * 
  * This class implements a pair of steps in a transitive closure.
- * Input should be edges of the format "u,v", one per line. 
+ * Input should be edges of the format (u,v), one per line. 
  * 
  */
-public class DoubleJoinTC extends Configured implements Tool{
-   static final Logger sLogger = Logger.getLogger(DoubleJoinTC.class);
+public class BinaryJoin extends Configured implements Tool{
+   static final Logger sLogger = Logger.getLogger(BinaryJoin.class);
    static final Level level = Level.DEBUG;
    static final String log = "hadoop.log";
    static final String tempDir = "doublejointc_temp";
@@ -139,7 +139,7 @@ public class DoubleJoinTC extends Configured implements Tool{
       Configuration conf = new Configuration();
       job = new Job(conf);
       job.setNumReduceTasks(numReducer);
-      job.setJarByClass(DoubleJoinTC.class);
+      job.setJarByClass(BinaryJoin.class);
       job.setMapperClass(JoinMapper.class);
       job.setMapOutputValueClass(Text.class);
       job.setReducerClass(JoinReducer.class);
@@ -152,7 +152,7 @@ public class DoubleJoinTC extends Configured implements Tool{
    }
    
    public static void main(String[] args) throws Exception {
-      int exitCode = ToolRunner.run(new DoubleJoinTC(), args);
+      int exitCode = ToolRunner.run(new BinaryJoin(), args);
       System.exit(exitCode);
    }
 }

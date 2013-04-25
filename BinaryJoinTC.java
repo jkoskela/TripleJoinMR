@@ -29,7 +29,7 @@ import com.google.common.collect.Sets;
  * @author Jade Koskela 
  * 
  * This class implements a single step in a transitive closure.
- * Input should be edges of the format (u,v), one per line. 
+ * Input should be edges of the format "u,v", one per line. 
  * 
  */
 public class BinaryJoinTC {

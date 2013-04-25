@@ -46,46 +46,29 @@ public class TripleJoinTCTest {
   public void testReducer() throws IOException {
      ArrayList<Text> list = new ArrayList<Text>();
      list.add(new Text(""));
-     reduceDriver.addInput(new Text("center,B,C"), new ArrayList<Text>(list));
+     reduceDriver.addInput(new Text("center,2032,2511"), new ArrayList<Text>(list));
      list.clear();
-     list.add(new Text("A"));
-     reduceDriver.addInput(new Text("left,B,1"), new ArrayList<Text>(list));
-     reduceDriver.addInput(new Text("left,B,1"), new ArrayList<Text>(list));
+     list.add(new Text("2511"));
+     reduceDriver.addInput(new Text("left,2021,1"), new ArrayList<Text>(list));
      list.clear();
-     list.add(new Text("D"));
-     reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
-     reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
+     list.add(new Text("136"));
+     list.add(new Text("1955"));
+     list.add(new Text("2498"));
+     reduceDriver.addInput(new Text("left,2032,1"), new ArrayList<Text>(list));
      list.clear();
-     reduceDriver.addOutput(new Text("B,C"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,C"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,D"), NullWritable.get());
-     /*
-     reduceDriver.addInput(new Text("center,B,C"), new ArrayList<Text>(list));
-     reduceDriver.addInput(new Text("center,B,E"), new ArrayList<Text>(list));
-     list.clear();
-     list.add(new Text("A"));
-     list.add(new Text("0"));
-     reduceDriver.addInput(new Text("left,B,1"), new ArrayList<Text>(list));
-     list.clear();
-     list.add(new Text("D"));
-     reduceDriver.addInput(new Text("right,C,1"), new ArrayList<Text>(list));
-     list.clear();
-     list.add(new Text("F"));
-     list.add(new Text("G"));
-     reduceDriver.addInput(new Text("right,E,1"), new ArrayList<Text>(list));
-     reduceDriver.addOutput(new Text("B,C"), NullWritable.get());
-     reduceDriver.addOutput(new Text("B,E"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,C"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,D"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,E"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,F"), NullWritable.get());
-     reduceDriver.addOutput(new Text("A,G"), NullWritable.get());
-     reduceDriver.addOutput(new Text("0,C"), NullWritable.get());
-     reduceDriver.addOutput(new Text("0,D"), NullWritable.get());
-     reduceDriver.addOutput(new Text("0,E"), NullWritable.get());
-     reduceDriver.addOutput(new Text("0,F"), NullWritable.get());
-     reduceDriver.addOutput(new Text("0,G"), NullWritable.get());
-     */
+     list.add(new Text("2021"));
+     list.add(new Text("2598"));
+     reduceDriver.addInput(new Text("right,2511,1"), new ArrayList<Text>(list));
+     reduceDriver.addOutput(new Text("2032,2511"), NullWritable.get());
+     reduceDriver.addOutput(new Text("136,2511"), NullWritable.get());
+     reduceDriver.addOutput(new Text("1955,2511"), NullWritable.get());
+     reduceDriver.addOutput(new Text("2498,2511"), NullWritable.get());
+     reduceDriver.addOutput(new Text("136,2021"), NullWritable.get());
+     reduceDriver.addOutput(new Text("136,2598"), NullWritable.get());
+     reduceDriver.addOutput(new Text("1955,2021"), NullWritable.get());
+     reduceDriver.addOutput(new Text("1955,2598"), NullWritable.get());
+     reduceDriver.addOutput(new Text("2498,2021"), NullWritable.get());
+     reduceDriver.addOutput(new Text("2498,2598"), NullWritable.get());
      reduceDriver.runTest(false);
   }
   
