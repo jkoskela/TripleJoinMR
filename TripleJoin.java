@@ -37,7 +37,8 @@ public class TripleJoin {
       Text outKey = new Text(), outValue = new Text();
       String[] keyString;
       String relation;
-      int gridDim, relationPosition;
+      int gridDim;
+      byte relationPosition = 0;
 
       @Override
       public void setup(Context context) throws IOException,
@@ -48,13 +49,11 @@ public class TripleJoin {
          gridDim = conf.getInt("gridDim", 0);
          relation = fs.getPath().getName();
          if(conf.get("left").equals(relation))
-            relationPosition = 0;
-         else if(conf.get("center").equals(relation))
-            relationPosition = 1;
-         else if(conf.get("right").equals(relation))
-            relationPosition = 2;
-         else
-            System.out.println("Error in Mapper Setup");
+            relationPosition |= 1;
+         if(conf.get("center").equals(relation))
+            relationPosition |= 2;
+         if(conf.get("right").equals(relation))
+            relationPosition |= 4;
       }
 
       @Override
@@ -62,18 +61,18 @@ public class TripleJoin {
             throws IOException, InterruptedException {
          keyString = value.toString().split(",");
          for (int i = 0; i < gridDim; i++) {
-            if(relationPosition == 0){
+            if((relationPosition & 1) > 0){
                outKey.set(String.format("left,%s,%d", keyString[1], i));
                outValue.set(keyString[0]);
                context.write(outKey, outValue);
             }
-            else if(relationPosition == 1){
+            if((relationPosition & 4) > 0){
                outKey.set(String.format("right,%s,%d", keyString[0], i));
                outValue.set(keyString[1]);
                context.write(outKey, outValue);
             }
          }
-         if(relationPosition == 2){
+         if((relationPosition & 2) > 0){
             outKey.set(String.format("center,%s,%s", keyString[0], keyString[1]));
             outValue.set("");
             context.write(outKey, outValue);
