@@ -37,7 +37,7 @@ public class TripleJoin {
       Text outKey = new Text(), outValue = new Text();
       String[] keyString;
       String relation;
-      int gridDim;
+      int gridDimX, gridDimY; 
       byte relationPosition = 0;
 
       @Override
@@ -46,7 +46,8 @@ public class TripleJoin {
          super.setup(context);
          Configuration conf = context.getConfiguration();
          FileSplit fs = (FileSplit)context.getInputSplit();
-         gridDim = conf.getInt("gridDim", 0);
+         gridDimX = conf.getInt("gridDimX", 0);
+         gridDimY = conf.getInt("gridDimY", 0);
          relation = fs.getPath().getName();
          if(conf.get("left").equals(relation))
             relationPosition |= 1;
@@ -60,18 +61,19 @@ public class TripleJoin {
       public void map(LongWritable key, Text value, Context context)
             throws IOException, InterruptedException {
          keyString = value.toString().split(",");
-         for (int i = 0; i < gridDim; i++) {
+         for (int i = 0; i < gridDimY; i++) 
             if((relationPosition & 1) > 0){
                outKey.set(String.format("left,%s,%d", keyString[1], i));
                outValue.set(keyString[0]);
                context.write(outKey, outValue);
             }
+         for (int i = 0; i < gridDimX; i++) 
             if((relationPosition & 4) > 0){
                outKey.set(String.format("right,%s,%d", keyString[0], i));
                outValue.set(keyString[1]);
                context.write(outKey, outValue);
             }
-         }
+         
          if((relationPosition & 2) > 0){
             outKey.set(String.format("center,%s,%s", keyString[0], keyString[1]));
             outValue.set("");
@@ -82,30 +84,31 @@ public class TripleJoin {
 
    public static class JoinPart extends Partitioner<Text, Text> implements
          Configurable {
-      int gridDim;
+      int gridDimX, gridDimY;
 
       @Override
       public int getPartition(Text key, Text value, int numPartitions) {
-         int row, col;
+         int x, y;
          String[] s = key.toString().split(",");
          if(s[0].equals("left")) {
-            row = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
-            col = Integer.parseInt(s[2]);
+            x = (s[1].hashCode() & Integer.MAX_VALUE) % gridDimX;
+            y = Integer.parseInt(s[2]);
          }
          else if(s[0].equals("center")) {
-            row = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
-            col = (s[2].hashCode() & Integer.MAX_VALUE) % gridDim;
+            x = (s[1].hashCode() & Integer.MAX_VALUE) % gridDimX;
+            y = (s[2].hashCode() & Integer.MAX_VALUE) % gridDimY;
          }
          else {
-            row = Integer.parseInt(s[2]);
-            col = (s[1].hashCode() & Integer.MAX_VALUE) % gridDim;
+            x = Integer.parseInt(s[2]);
+            y = (s[1].hashCode() & Integer.MAX_VALUE) % gridDimY;
          }
-         System.out.printf("PARTITION %d: %s %s\n", row*gridDim+col, key.toString(), value.toString());
-         return row*gridDim + col;
+         System.out.printf("PARTITION %d: %s %s\n", x*gridDimY+y, key.toString(), value.toString());
+         return x*gridDimY + y;
       }
       @Override
       public void setConf(Configuration conf) {
-         gridDim = conf.getInt("gridDim", 0);
+         gridDimX = conf.getInt("gridDimX", 0);
+         gridDimY = conf.getInt("gridDimY", 0);
       }
       @Override
       public Configuration getConf() {
@@ -155,22 +158,24 @@ public class TripleJoin {
       Job job = null;
       Configuration conf = new Configuration();
       String left, center, right, output;
-      int gridDim;
-      if (args.length != 5) {
-         System.out.println("usage: TripleJoinTC R1 R2 R3 output gridDim");
+      int gridDimX,gridDimY;
+      if (args.length != 6) {
+         System.out.println("usage: TripleJoinTC relation1 relation2 relation3 Output gridDimX gridDimY");
          System.exit(1);
       }
       left = args[0];
       center = args[1];
       right = args[2];
       output = args[3];
-      gridDim = Integer.parseInt(args[4]);
-      conf.setInt("gridDim", gridDim);
+      gridDimX = Integer.parseInt(args[4]);
+      gridDimY = Integer.parseInt(args[5]);
+      conf.setInt("gridDimX", gridDimX);
+      conf.setInt("gridDimY", gridDimY);
       conf.set("left", left);
       conf.set("center", center);
       conf.set("right", right);
       job = new Job(conf);
-      job.setNumReduceTasks((int) Math.pow(gridDim, 2));
+      job.setNumReduceTasks(gridDimX*gridDimY);
       job.setJarByClass(TripleJoin.class);
       job.setMapperClass(JoinMapper.class);
       job.setReducerClass(JoinReducer.class);

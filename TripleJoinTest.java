@@ -12,7 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TripleJoinTest {
-   static final int gridDim = 5;
+   static final int gridDimX = 5;
+   static final int gridDimY = 2;
   
   MapDriver<LongWritable, Text, Text, Text> mapDriver;
   ReduceDriver<Text, Text, Text, NullWritable> reduceDriver;
@@ -25,7 +26,8 @@ public class TripleJoinTest {
      mapDriver = MapDriver.newMapDriver(mapper);
      reduceDriver = ReduceDriver.newReduceDriver(reducer);
      Configuration conf = mapDriver.getConfiguration();
-     conf.setInt("gridDim", gridDim);
+     conf.setInt("gridDimX", gridDimX);
+     conf.setInt("gridDimY", gridDimY);
      conf.set("left","leftRelation");
      conf.set("right","rightRelation");
      conf.set("center","centerRelation");
@@ -35,7 +37,7 @@ public class TripleJoinTest {
   public void testMapperLeft() throws IOException {
      mapDriver.setMapInputPath(new Path("leftRelation"));
      mapDriver.withInput(new LongWritable(), new Text("A,B"));
-     for(int i=0; i<gridDim; i++)
+     for(int i=0; i<gridDimY; i++)
         mapDriver.addOutput(new Text("left,B,"+i), new Text("A"));
      mapDriver.runTest(false);
   }
@@ -43,7 +45,7 @@ public class TripleJoinTest {
   public void testMapperRight() throws IOException {
      mapDriver.setMapInputPath(new Path("rightRelation"));
      mapDriver.withInput(new LongWritable(), new Text("A,B"));
-     for(int i=0; i<gridDim; i++)
+     for(int i=0; i<gridDimX; i++)
         mapDriver.addOutput(new Text("right,A,"+i), new Text("B"));
      mapDriver.runTest(false);
   }
